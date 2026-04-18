@@ -47,8 +47,8 @@ from trl import GRPOConfig, GRPOTrainer
 training_args = GRPOConfig(
   use_vllm=True,
   learning_rate=5e-4,
-  adam_beta1=0.9,
-  adam_beta2=0.95,
+  adam_beta1=0.8,
+  adam_beta2=0.90,
   weight_decay=0.1,
   warmup_ratio=0.07,
   lr_scheduler_type="cosine",
