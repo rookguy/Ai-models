@@ -35,7 +35,7 @@ def main():
 
   sft_ds = train_ds.map(to_sft_text, remove_columns=train_ds.column_names)
 
-  model_name = os.getenv("MODEL_NAME", "sshleifer/tiny-gpt2")
+  model_name = os.getenv("MODEL_NAME", "microsoft/Phi-4-mini-reasoning")
   output_dir = os.getenv("OUTPUT_DIR", "Chem-PHI-mini-cpu-sft")
   save_steps = int(os.getenv("SAVE_STEPS", "50000"))
   save_total_limit = int(os.getenv("SAVE_TOTAL_LIMIT", "3"))
