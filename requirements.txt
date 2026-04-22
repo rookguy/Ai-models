@@ -1,0 +1,4 @@
+datasets==4.3.0
+torch==2.10.0
+trl==0.24.0
+unsloth==2026.4.6
