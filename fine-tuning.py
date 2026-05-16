@@ -4,11 +4,8 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers.trainer_utils import get_last_checkpoint
 from trl import SFTConfig, SFTTrainer
-Ask=input("Do you have a GPU Y/N")
-if Ask=="Y":
-  torch.set_default_device("cpu")
-else:
-  pass
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
 SYSTEM = (
   "You are a chemistry expert, and you are helping a student to answer the question."
   " Show formulas and units in your answer, and explain the steps to get the answer when relevant."
@@ -49,9 +46,9 @@ def main():
     tokenizer.pad_token = tokenizer.eos_token
 
   model = AutoModelForCausalLM.from_pretrained(model_name)
-    use_cpu = device.type == "cpu"
-    fp16 = (device.type == "cuda")
-    bf16 = False
+  use_cpu = device.type == "cpu"
+  fp16 = (device.type == "cuda")
+  bf16 = False
   training_args = SFTConfig(
     output_dir=output_dir,
     learning_rate=5e-5,
@@ -90,8 +87,7 @@ def main():
   hf_token = os.getenv("HF_TOKEN")
     if not hf_token:
       hf_token=input("Hf token please").strip()
-    else:
-      break
+    
   if hf_token:
     model.push_to_hub(output_dir, token=hf_token)
     tokenizer.push_to_hub(output_dir, token=hf_token)
