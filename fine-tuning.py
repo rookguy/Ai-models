@@ -6,10 +6,8 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers.trainer_utils import get_last_checkpoint
 from trl import SFTConfig, SFTTrainer
-<<<<<<< HEAD
+
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
-=======
->>>>>>> 6351888203ead36a8a3cafed8c4a20fbe214c12e
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
