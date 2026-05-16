@@ -49,8 +49,9 @@ def main():
     tokenizer.pad_token = tokenizer.eos_token
 
   model = AutoModelForCausalLM.from_pretrained(model_name)
-  model.to("cpu")
-
+    use_cpu = device.type == "cpu"
+    fp16 = (device.type == "cuda")
+    bf16 = False
   training_args = SFTConfig(
     output_dir=output_dir,
     learning_rate=5e-5,
@@ -64,8 +65,8 @@ def main():
     max_length=512,
     report_to="none",
     use_cpu=True,
-    fp16=False,
-    bf16=False,
+    fp16=fp16,
+    bf16=bf16,
   )
 
   trainer = SFTTrainer(
@@ -87,6 +88,10 @@ def main():
   tokenizer.save_pretrained(output_dir)
 
   hf_token = os.getenv("HF_TOKEN")
+    if not hf_token:
+      hf_token=input("Hf token please").strip()
+    else:
+      break
   if hf_token:
     model.push_to_hub(output_dir, token=hf_token)
     tokenizer.push_to_hub(output_dir, token=hf_token)
