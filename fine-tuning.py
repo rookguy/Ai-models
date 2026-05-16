@@ -4,7 +4,6 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers.trainer_utils import get_last_checkpoint
 from trl import SFTConfig, SFTTrainer
-from unsloth import fast_tokenizer_for_inference
 from unsloth import FastLanguageModel
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
