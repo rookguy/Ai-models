@@ -1,5 +1,4 @@
 import os
-from unsloth import fast_tokenizer_for_inference
 from unsloth import FastLanguageModel
 from datasets import load_dataset
 import torch
