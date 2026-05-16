@@ -4,9 +4,11 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers.trainer_utils import get_last_checkpoint
 from trl import SFTConfig, SFTTrainer
-
-torch.set_default_device("cpu")
-
+Ask=input("Do you have a GPU Y/N")
+if Ask=="Y":
+  torch.set_default_device("cpu")
+else:
+  pass
 SYSTEM = (
   "You are a chemistry expert, and you are helping a student to answer the question."
   " Show formulas and units in your answer, and explain the steps to get the answer when relevant."
