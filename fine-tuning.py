@@ -9,6 +9,12 @@ from trl import SFTConfig, SFTTrainer
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
+
+# Get GPU memory info
+if device.type == "cuda":
+  gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1e9
+  print(f"Total GPU Memory: {gpu_memory:.2f} GB")
+
 SYSTEM = (
   "You are a chemistry expert, and you are helping a student to answer the question."
   " Show formulas and units in your answer, and explain the steps to get the answer when relevant."
@@ -47,17 +53,17 @@ def main():
   # Load model and tokenizer with unsloth for efficiency
   model, tokenizer = FastLanguageModel.from_pretrained(
     model_name=model_name,
-    max_seq_length=512,
-    dtype=torch.float16 if device.type == "cuda" else torch.float32,
+    max_seq_length=1024,
+    dtype=torch.bfloat16 if device.type == "cuda" else torch.float32,
     load_in_4bit=device.type == "cuda",
   )
 
   # Apply LoRA using unsloth's built-in support (handles target modules automatically)
   model = FastLanguageModel.get_peft_model(
     model,
-    r=8,
-    lora_alpha=16,
-    target_modules="all-linear",
+    r=16,
+    lora_alpha=32,
+    target_modules=["q_proj", "v_proj"],
     lora_dropout=0.05,
     bias="none",
     use_gradient_checkpointing="unsloth",
@@ -72,24 +78,29 @@ def main():
     tokenizer.pad_token = tokenizer.eos_token
 
   use_cpu = device.type == "cpu"
-  fp16 = device.type == "cuda"
-  bf16 = False
+  fp16 = False
+  bf16 = device.type == "cuda"
 
   training_args = SFTConfig(
     output_dir=output_dir,
-    learning_rate=5e-5,
-    per_device_train_batch_size=1,
-    gradient_accumulation_steps=1,
+    learning_rate=2e-4,
+    per_device_train_batch_size=8,
+    gradient_accumulation_steps=2,
     num_train_epochs=1,
     logging_steps=10,
     save_strategy="steps",
     save_steps=save_steps,
     save_total_limit=save_total_limit,
-    max_length=512,
+    max_length=1024,
     report_to="none",
     use_cpu=use_cpu,
     fp16=fp16,
     bf16=bf16,
+    dataloader_num_workers=4,
+    optim="paged_adamw_8bit",
+    warmup_steps=100,
+    weight_decay=0.01,
+    seed=42,
   )
 
   trainer = SFTTrainer(
