@@ -4,6 +4,9 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers.trainer_utils import get_last_checkpoint
 from trl import SFTConfig, SFTTrainer
+from unsloth import fast_tokenizer_for_inference
+from unsloth import FastLanguageModel
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 SYSTEM = (
@@ -27,7 +30,7 @@ def to_sft_text(row):
 
 
 def main():
-  print("Using device: cpu")
+  print(f"Using device: {device}")
   ds = load_dataset("summykai/chemistry-sft-ultra")
   train_ds = ds["train"]
   print([train_ds[0]] if len(train_ds) > 0 else [])
@@ -41,14 +44,24 @@ def main():
 
   os.makedirs(output_dir, exist_ok=True)
 
-  tokenizer = AutoTokenizer.from_pretrained(model_name)
+  # Load model and tokenizer with unsloth for efficiency
+  model, tokenizer = FastLanguageModel.from_pretrained(
+    model_name=model_name,
+    max_seq_length=512,
+    dtype=torch.float16 if device.type == "cuda" else torch.float32,
+    load_in_4bit=device.type == "cuda",
+  )
+
+  # Prepare model for training
+  model = FastLanguageModel.for_training(model)
+
   if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token
 
-  model = AutoModelForCausalLM.from_pretrained(model_name)
   use_cpu = device.type == "cpu"
-  fp16 = (device.type == "cuda")
+  fp16 = device.type == "cuda"
   bf16 = False
+
   training_args = SFTConfig(
     output_dir=output_dir,
     learning_rate=5e-5,
@@ -61,7 +74,7 @@ def main():
     save_total_limit=save_total_limit,
     max_length=512,
     report_to="none",
-    use_cpu=True,
+    use_cpu=use_cpu,
     fp16=fp16,
     bf16=bf16,
   )
@@ -85,9 +98,8 @@ def main():
   tokenizer.save_pretrained(output_dir)
 
   hf_token = os.getenv("HF_TOKEN")
-    if not hf_token:
-      hf_token=input("Hf token please").strip()
-    
+  if not hf_token:
+    hf_token = input("Hf token please").strip()
   if hf_token:
     model.push_to_hub(output_dir, token=hf_token)
     tokenizer.push_to_hub(output_dir, token=hf_token)
