@@ -1,10 +1,11 @@
 import os
 from datasets import load_dataset
+from unsloth import FastLanguageModel
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers.trainer_utils import get_last_checkpoint
 from trl import SFTConfig, SFTTrainer
-from unsloth import FastLanguageModel
+from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -51,6 +52,24 @@ def main():
     load_in_4bit=device.type == "cuda",
   )
 
+  # Prepare model for kbit training (quantized)
+  if device.type == "cuda":
+    model = prepare_model_for_kbit_training(model)
+
+  # Configure LoRA for efficient fine-tuning
+  lora_config = LoraConfig(
+    r=8,
+    lora_alpha=16,
+    target_modules=["q_proj", "v_proj"],
+    lora_dropout=0.05,
+    bias="none",
+    task_type="CAUSAL_LM",
+  )
+
+  # Apply LoRA to the quantized model
+  model = get_peft_model(model, lora_config)
+  model.print_trainable_parameters()
+
   # Prepare model for training
   model = FastLanguageModel.for_training(model)
 
@@ -93,18 +112,31 @@ def main():
 
   trainer.train(resume_from_checkpoint=last_checkpoint)
 
+  # Save the LoRA adapter
   model.save_pretrained(output_dir)
   tokenizer.save_pretrained(output_dir)
+
+  # Optionally merge LoRA weights with base model and save full model
+  merged_model = model.merge_and_unload()
+  merged_output_dir = f"{output_dir}-merged"
+  os.makedirs(merged_output_dir, exist_ok=True)
+  merged_model.save_pretrained(merged_output_dir)
+  tokenizer.save_pretrained(merged_output_dir)
 
   hf_token = os.getenv("HF_TOKEN")
   if not hf_token:
     hf_token = input("Hf token please").strip()
   if hf_token:
+    # Push LoRA adapter
     model.push_to_hub(output_dir, token=hf_token)
     tokenizer.push_to_hub(output_dir, token=hf_token)
-    print(f"Successfully pushed the fine-tuned model to the Hugging Face Hub under '{output_dir}'.")
+    # Push merged model
+    merged_model.push_to_hub(merged_output_dir, token=hf_token)
+    tokenizer.push_to_hub(merged_output_dir, token=hf_token)
+    print(f"Successfully pushed LoRA adapter to '{output_dir}'.")
+    print(f"Successfully pushed merged model to '{merged_output_dir}'.")
   else:
-    print("HF_TOKEN not set. Model saved locally only.")
+    print("HF_TOKEN not set. Models saved locally only.")
 
 
 if __name__ == "__main__":
