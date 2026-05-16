@@ -7,8 +7,6 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers.trainer_utils import get_last_checkpoint
 from trl import SFTConfig, SFTTrainer
 
-from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 SYSTEM = (
@@ -54,22 +52,17 @@ def main():
     load_in_4bit=device.type == "cuda",
   )
 
-  # Prepare model for kbit training (quantized)
-  if device.type == "cuda":
-    model = prepare_model_for_kbit_training(model)
-
-  # Configure LoRA for efficient fine-tuning
-  lora_config = LoraConfig(
+  # Apply LoRA using unsloth's built-in support (handles target modules automatically)
+  model = FastLanguageModel.get_peft_model(
+    model,
     r=8,
     lora_alpha=16,
-    target_modules=["q_proj", "v_proj"],
+    target_modules="all-linear",
     lora_dropout=0.05,
     bias="none",
-    task_type="CAUSAL_LM",
+    use_gradient_checkpointing="unsloth",
+    use_rslora=True,
   )
-
-  # Apply LoRA to the quantized model
-  model = get_peft_model(model, lora_config)
   model.print_trainable_parameters()
 
   # Prepare model for training
