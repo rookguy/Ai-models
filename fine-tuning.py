@@ -58,12 +58,22 @@ def main():
     load_in_4bit=device.type == "cuda",
   )
 
+  # Find actual module names
+  target_modules_found = set()
+  for name, _ in model.named_modules():
+    if 'proj' in name.lower():
+      target_modules_found.add(name.split('.')[-1])
+
+  print(f"\nFound projection modules: {target_modules_found}")
+  target_modules_list = list(target_modules_found)[:2]
+  print(f"Using target modules: {target_modules_list}")
+
   # Apply LoRA using unsloth's built-in support
   model = FastLanguageModel.get_peft_model(
     model,
     r=16,
     lora_alpha=32,
-    target_modules=["qpro", "vpro"],
+    target_modules=target_modules_list,
     lora_dropout=0.05,
     bias="none",
     use_gradient_checkpointing="unsloth",
