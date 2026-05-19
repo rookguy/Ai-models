@@ -58,12 +58,12 @@ def main():
     load_in_4bit=device.type == "cuda",
   )
 
-  # Apply LoRA using unsloth's built-in support (handles target modules automatically)
+  # Apply LoRA using unsloth's built-in support
   model = FastLanguageModel.get_peft_model(
     model,
     r=16,
     lora_alpha=32,
-    target_modules=["q_proj", "v_proj"],
+    target_modules=["qpro", "vpro"],
     lora_dropout=0.05,
     bias="none",
     use_gradient_checkpointing="unsloth",
