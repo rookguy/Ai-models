@@ -88,8 +88,8 @@ def main():
     tokenizer.pad_token = tokenizer.eos_token
 
   use_cpu = device.type == "cpu"
-  fp16 = False
-  bf16 = device.type == "cuda"
+  fp16 = device.type == "cuda"  # T4 supports fp16 but not bf16
+  bf16 = False
 
   training_args = SFTConfig(
     output_dir=output_dir,
