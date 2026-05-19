@@ -53,7 +53,7 @@ def main():
   # Load model and tokenizer with unsloth for efficiency
   model, tokenizer = FastLanguageModel.from_pretrained(
     model_name=model_name,
-    max_seq_length=1024,
+    max_seq_length=6000,
     dtype=torch.bfloat16 if device.type == "cuda" else torch.float32,
     load_in_4bit=device.type == "cuda",
   )
@@ -98,10 +98,11 @@ def main():
     gradient_accumulation_steps=2,
     num_train_epochs=1,
     logging_steps=10,
+    max_steps=6000,
     save_strategy="steps",
-    save_steps=save_steps,
+    save_steps=500,
     save_total_limit=save_total_limit,
-    max_length=1024,
+    max_length=6000,
     report_to="none",
     use_cpu=use_cpu,
     fp16=fp16,
